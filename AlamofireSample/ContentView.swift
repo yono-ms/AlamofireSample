@@ -103,13 +103,29 @@ final class Logger: EventMonitor {
 
     // Event called when any type of Request is resumed.
     func requestDidResume(_ request: Request) {
-        print("Resuming: \(request)")
+//        print("Resuming: \(request)")
+        let allHeaders = request.request.flatMap { $0.allHTTPHeaderFields.map { $0.description } } ?? "None"
+        let headers = """
+                ⚡️⚡️⚡️⚡️ Request Started: \(request)
+                ⚡️⚡️⚡️⚡️ Headers: \(allHeaders)
+                """
+        NSLog(headers)
+        
+        
+        let body = request.request.flatMap { $0.httpBody.map { String(decoding: $0, as: UTF8.self) } } ?? "None"
+        let message = """
+                ⚡️⚡️⚡️⚡️ Request Started: \(request)
+                ⚡️⚡️⚡️⚡️ Body Data: \(body)
+                """
+        NSLog(message)
     }
 
     // Event called whenever a DataRequest has parsed a response.
     func request<Value>(_ request: DataRequest, didParseResponse response: DataResponse<Value, AFError>) {
-        debugPrint("Finished: \(response)")
-//        debugPrint("Finished: \(response.debugDescription)")
+//        debugPrint("Finished: \(response)")
+        NSLog("⚡️⚡️⚡️⚡️ Response Received: \(response.debugDescription)")
+        NSLog("⚡️⚡️⚡️⚡️ Response All Headers: \(String(describing: response.response?.allHeaderFields))")
+
     }
 }
 
