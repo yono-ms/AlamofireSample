@@ -21,7 +21,7 @@ struct ContentView: View {
                     do {
                         let path = urlBase + "/get"
                         let parameters = SampleRequest(paramA: "valueA", paramB: "valueB")
-                        let response: SampleResponseGet = try await sampleGeneric(path: path, method: .get, param: parameters)
+                        let response: SampleResponse = try await sampleGeneric(path: path, method: .get, param: parameters)
                         print("--------")
                         print(response)
                     } catch {
@@ -34,21 +34,7 @@ struct ContentView: View {
                     do {
                         let path = urlBase + "/post"
                         let parameters = SampleRequest(paramA: "valueA", paramB: "valueB")
-                        let response: SampleResponsePost = try await sampleGeneric(path: path, method: .post, param: parameters)
-                        print("--------")
-                        print(response)
-                    } catch {
-                        print(error)
-                    }
-                }
-            }
-            Button("test") {
-                Task {
-                    do {
-                        let src = """
-                            { "keyA": "valueA" }
-                        """
-                        let response: TestSample = try await testDecode(src: src)
+                        let response: SampleResponse = try await sampleGeneric(path: path, method: .post, param: parameters)
                         print("--------")
                         print(response)
                     } catch {
@@ -63,18 +49,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-}
-
-struct TestSample: Codable {
-    let keyA: String
-}
-
-func testDecode<T: Codable>(src: String) async throws -> T {
-    let data = src.data(using: .utf8)!
-    let decoder = JSONDecoder()
-    decoder.keyDecodingStrategy = .convertFromSnakeCase
-    let result = try decoder.decode(T.self, from: data)
-    return result
 }
 
 let urlBase = "https://httpbin.org"
@@ -104,63 +78,24 @@ func sampleGeneric<T: Codable>(
     }
 }
 
-func sampleGet() async throws -> SampleResponseGet {
-    print("GET")
-    let decoder = JSONDecoder()
-    decoder.keyDecodingStrategy = .convertFromSnakeCase
-    let param = SampleRequest(paramA: "valueA", paramB: "valueB")
-    let request = session.request(urlBase + "/get", method: .get, parameters: param, encoder: URLEncodedFormParameterEncoder.default)
-    let response = await request
-        .serializingDecodable(SampleResponseGet.self, decoder: decoder)
-        .response
-    switch response.result {
-    case .success(let data):
-        print("---- success ----")
-        print(data)
-        return data
-    case .failure(let error):
-        throw error
-    }
-}
-
-func samplePost() async throws -> SampleResponsePost {
-    print("POST")
-    let decoder = JSONDecoder()
-    decoder.keyDecodingStrategy = .convertFromSnakeCase
-    let param = SampleRequest(paramA: "valueA", paramB: "valueB")
-    let request = session.request(urlBase + "/post", method: .post, parameters: param, encoder: JSONParameterEncoder.default)
-    let response = await request
-        .serializingDecodable(SampleResponsePost.self, decoder: decoder)
-        .response
-    switch response.result {
-    case .success(let data):
-        print("---- success ----")
-        print(data)
-        return data
-    case .failure(let error):
-        throw error
-    }
-}
-
 struct SampleRequest: Codable {
     let paramA: String
     let paramB: String
 }
 
-struct SampleResponseGet: Codable {
+struct SampleResponse: Codable {
     let args: SampleResponseArgs
-    struct SampleResponseArgs: Codable {
-        let paramA: String
-        let paramB: String
-    }
+    let json: SampleResponseJson?
 }
 
-struct SampleResponsePost: Codable {
-    let json: SampleResponseJson
-    struct SampleResponseJson: Codable {
-        let paramA: String
-        let paramB: String
-    }
+struct SampleResponseArgs: Codable {
+    let paramA: String?
+    let paramB: String?
+}
+
+struct SampleResponseJson: Codable {
+    let paramA: String
+    let paramB: String
 }
 
 final class Logger: EventMonitor {
