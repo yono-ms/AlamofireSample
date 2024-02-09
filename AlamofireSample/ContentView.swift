@@ -58,20 +58,18 @@ func sampleGeneric<T: Codable>(
     method: HTTPMethod,
     param: Codable
 ) async throws -> T {
-    let request = if method == .get {
-        session.request(path, method: .get, parameters: param, encoder: URLEncodedFormParameterEncoder.default)
+    let encoder: ParameterEncoder = if method == .get {
+        URLEncodedFormParameterEncoder.default
     } else {
-        session.request(path, method: .post, parameters: param, encoder: JSONParameterEncoder.default)
+        JSONParameterEncoder.default
     }
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
-    let response = await request
+    let response = await session.request(path, method: method, parameters: param, encoder: encoder)
         .serializingDecodable(T.self, decoder: decoder)
         .response
     switch response.result {
     case .success(let data):
-        print("---- success ----")
-        print(data)
         return data
     case .failure(let error):
         throw error
