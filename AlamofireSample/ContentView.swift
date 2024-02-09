@@ -19,7 +19,9 @@ struct ContentView: View {
             Button("GET") {
                 Task {
                     do {
-                        let response = try await sampleGet()
+                        let path = urlBase + "/get"
+                        let parameters = SampleRequest(paramA: "valueA", paramB: "valueB")
+                        let response: SampleResponseGet = try await sampleGeneric(path: path, method: .get, param: parameters)
                         print("--------")
                         print(response)
                     } catch {
@@ -30,7 +32,23 @@ struct ContentView: View {
             Button("POST") {
                 Task {
                     do {
-                        let response = try await samplePost()
+                        let path = urlBase + "/post"
+                        let parameters = SampleRequest(paramA: "valueA", paramB: "valueB")
+                        let response: SampleResponsePost = try await sampleGeneric(path: path, method: .post, param: parameters)
+                        print("--------")
+                        print(response)
+                    } catch {
+                        print(error)
+                    }
+                }
+            }
+            Button("test") {
+                Task {
+                    do {
+                        let src = """
+                            { "keyA": "valueA" }
+                        """
+                        let response: TestSample = try await testDecode(src: src)
                         print("--------")
                         print(response)
                     } catch {
@@ -47,7 +65,44 @@ struct ContentView: View {
     ContentView()
 }
 
+struct TestSample: Codable {
+    let keyA: String
+}
+
+func testDecode<T: Codable>(src: String) async throws -> T {
+    let data = src.data(using: .utf8)!
+    let decoder = JSONDecoder()
+    decoder.keyDecodingStrategy = .convertFromSnakeCase
+    let result = try decoder.decode(T.self, from: data)
+    return result
+}
+
 let urlBase = "https://httpbin.org"
+
+func sampleGeneric<T: Codable>(
+    path: String,
+    method: HTTPMethod,
+    param: Codable
+) async throws -> T {
+    let request = if method == .get {
+        session.request(path, method: .get, parameters: param, encoder: URLEncodedFormParameterEncoder.default)
+    } else {
+        session.request(path, method: .post, parameters: param, encoder: JSONParameterEncoder.default)
+    }
+    let decoder = JSONDecoder()
+    decoder.keyDecodingStrategy = .convertFromSnakeCase
+    let response = await request
+        .serializingDecodable(T.self, decoder: decoder)
+        .response
+    switch response.result {
+    case .success(let data):
+        print("---- success ----")
+        print(data)
+        return data
+    case .failure(let error):
+        throw error
+    }
+}
 
 func sampleGet() async throws -> SampleResponseGet {
     print("GET")
